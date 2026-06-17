@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OmniRadar — 全域视频下载·AI文字稿·内容拆解</title>
+<style>
+:root {
+  --bg: #080e1a;
+  --bg2: #0e1628;
+  --bg3: #131e33;
+  --border: rgba(255,255,255,0.07);
+  --blue: #2563eb;
+  --cyan: #06b6d4;
+  --grad: linear-gradient(135deg, #2563eb, #06b6d4);
+  --text: #f1f5f9;
+  --muted: #64748b;
+  --sub: #94a3b8;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif; font-size: 15px; line-height: 1.6; }
+
+/* ── NAV ── */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 40px; height: 60px;
+  background: rgba(8,14,26,0.85); backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+.nav-logo .mark { font-size: 20px; background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.nav-logo .name { font-size: 16px; font-weight: 700; color: var(--text); }
+.nav-links { display: flex; gap: 28px; }
+.nav-links a { color: var(--sub); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+.nav-links a:hover { color: var(--text); }
+.nav-cta { display: flex; gap: 10px; align-items: center; }
+.btn-ghost { padding: 7px 16px; border: 1px solid var(--border); border-radius: 8px; color: var(--sub); background: none; font-size: 13px; cursor: pointer; transition: all 0.2s; text-decoration: none; }
+.btn-ghost:hover { border-color: var(--cyan); color: var(--text); }
+.btn-primary { padding: 7px 18px; border-radius: 8px; background: var(--grad); color: #fff; border: none; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; }
+
+/* ── HERO ── */
+.hero {
+  position: relative; overflow: hidden;
+  padding: 90px 40px 80px;
+  text-align: center;
+}
+.hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(37,99,235,0.18), transparent 70%);
+  pointer-events: none;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 14px; border-radius: 20px;
+  background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.25);
+  font-size: 12px; color: var(--cyan); margin-bottom: 24px;
+}
+.hero h1 {
+  font-size: clamp(28px, 5vw, 52px); font-weight: 800; line-height: 1.15;
+  margin-bottom: 18px; letter-spacing: -0.5px;
+}
+.hero h1 span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero p { font-size: 17px; color: var(--sub); max-width: 540px; margin: 0 auto 40px; }
+
+/* URL input */
+.url-box {
+  max-width: 680px; margin: 0 auto 24px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 6px 6px 6px 20px;
+  display: flex; align-items: center; gap: 10px;
+  transition: border-color 0.2s;
+}
+.url-box:focus-within { border-color: var(--blue); }
+.url-box input {
+  flex: 1; background: none; border: none; outline: none;
+  color: var(--text); font-size: 14px;
+}
+.url-box input::placeholder { color: var(--muted); }
+.parse-btn {
+  padding: 10px 24px; border-radius: 10px;
+  background: var(--grad); color: #fff;
+  border: none; font-size: 14px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: opacity 0.2s;
+}
+.parse-btn:hover { opacity: 0.88; }
+
+/* platform badges */
+.platforms {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; flex-wrap: wrap; margin-bottom: 16px;
+}
+.plat-label { font-size: 12px; color: var(--muted); }
+.plat-badge {
+  padding: 3px 10px; border-radius: 20px;
+  background: var(--bg3); border: 1px solid var(--border);
+  font-size: 12px; color: var(--sub);
+}
+
+/* ── RESULT CARD ── */
+#result-area { max-width: 680px; margin: 0 auto 60px; display: none; }
+.result-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 14px; overflow: hidden;
+}
+.result-meta {
+  display: flex; gap: 14px; padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.thumb-wrap {
+  width: 100px; height: 70px; border-radius: 8px;
+  overflow: hidden; flex-shrink: 0; background: var(--bg3);
+  position: relative;
+}
+.thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+.thumb-overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.play-icon { font-size: 22px; opacity: 0.9; }
+.meta-info { flex: 1; min-width: 0; }
+.meta-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.meta-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag {
+  padding: 2px 8px; border-radius: 4px; font-size: 11px;
+  background: rgba(37,99,235,0.15); color: var(--cyan); border: 1px solid rgba(6,182,212,0.2);
+}
+.tag.green { background: rgba(16,185,129,0.12); color: #34d399; border-color: rgba(52,211,153,0.2); }
+.result-actions { display: flex; gap: 0; }
+.action-btn {
+  flex: 1; padding: 13px 8px; text-align: center;
+  border: none; background: none; color: var(--sub);
+  font-size: 13px; cursor: pointer; border-top: 1px solid var(--border);
+  transition: all 0.15s; display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.action-btn:not(:last-child) { border-right: 1px solid var(--border); }
+.action-btn:hover { background: rgba(37,99,235,0.08); color: var(--text); }
+.action-btn .action-icon { font-size: 18px; }
+.action-btn .action-label { font-size: 11px; }
+
+/* transcript area */
+#transcript-area {
+  border-top: 1px solid var(--border); padding: 16px;
+  display: none;
+}
+.transcript-header { font-size: 12px; color: var(--cyan); font-weight: 600; margin-bottom: 10px; display: flex; justify-content: space-between; }
+.transcript-text { font-size: 13px; color: var(--sub); line-height: 1.8; }
+.copy-btn { padding: 2px 10px; border-radius: 4px; background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.2); color: var(--cyan); font-size: 11px; cursor: pointer; }
+
+/* loading */
+.loading-wrap { padding: 24px; text-align: center; }
+.spinner { width: 28px; height: 28px; border: 2px solid var(--border); border-top-color: var(--cyan); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 10px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 13px; color: var(--sub); }
+
+/* ── FEATURES ── */
+.section { padding: 80px 40px; max-width: 1100px; margin: 0 auto; }
+.section-label { font-size: 12px; color: var(--cyan); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 12px; }
+.section-title { font-size: clamp(22px, 3.5vw, 36px); font-weight: 800; margin-bottom: 14px; letter-spacing: -0.3px; }
+.section-sub { font-size: 16px; color: var(--sub); max-width: 500px; margin-bottom: 52px; }
+
+.feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+@media (max-width: 768px) { .feat-grid { grid-template-columns: 1fr; } }
+.feat-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 28px 24px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.feat-card:hover { border-color: rgba(37,99,235,0.4); transform: translateY(-2px); }
+.feat-icon { font-size: 28px; margin-bottom: 16px; }
+.feat-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.feat-desc { font-size: 13px; color: var(--sub); line-height: 1.7; }
+.feat-list { list-style: none; margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+.feat-list li { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.feat-list li::before { content: '✓'; color: var(--cyan); font-size: 11px; }
+
+/* ── ADVANCED ── */
+.adv-section { padding: 0 40px 80px; max-width: 1100px; margin: 0 auto; }
+.adv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+@media (max-width: 768px) { .adv-grid { grid-template-columns: 1fr; } }
+.adv-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 16px; padding: 28px 28px 24px;
+  position: relative; overflow: hidden;
+}
+.adv-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--grad);
+}
+.adv-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.adv-card-icon { font-size: 22px; }
+.adv-card-title { font-size: 16px; font-weight: 700; }
+.adv-card-badge { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;
+  background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
+.adv-card-desc { font-size: 13px; color: var(--sub); line-height: 1.7; margin-bottom: 16px; }
+.adv-tag-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.adv-tag { padding: 3px 10px; border-radius: 6px; font-size: 11px;
+  background: var(--bg3); border: 1px solid var(--border); color: var(--muted); }
+
+/* mock preview */
+.mock-preview {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px; margin-top: 16px;
+}
+.mock-row { display: flex; align-items: center; gap: 8px; padding: 7px 0;
+  border-bottom: 1px solid var(--border); font-size: 12px; color: var(--sub); }
+.mock-row:last-child { border-bottom: none; }
+.mock-num { font-size: 11px; color: var(--muted); min-width: 16px; }
+.mock-thumb { width: 36px; height: 24px; border-radius: 4px; background: var(--bg); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 10px; }
+.mock-title { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mock-check { font-size: 12px; color: var(--cyan); }
+
+/* ── PRICING ── */
+.price-section { padding: 0 40px 90px; }
+.price-toggle { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 40px; }
+.toggle-label { font-size: 13px; color: var(--sub); }
+.toggle-switch {
+  width: 44px; height: 24px; background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 12px; cursor: pointer; position: relative; transition: background 0.2s;
+}
+.toggle-switch.on { background: var(--blue); }
+.toggle-dot {
+  position: absolute; top: 3px; left: 3px;
+  width: 16px; height: 16px; background: #fff; border-radius: 50%;
+  transition: transform 0.2s;
+}
+.toggle-switch.on .toggle-dot { transform: translateX(20px); }
+.toggle-save { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;
+  background: rgba(16,185,129,0.15); color: #34d399; }
+
+.price-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 860px; margin: 0 auto; }
+@media (max-width: 768px) { .price-grid { grid-template-columns: 1fr; } }
+.price-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 18px; padding: 30px 26px;
+}
+.price-card.featured {
+  border-color: var(--blue); background: rgba(37,99,235,0.06);
+  position: relative;
+}
+.price-card.featured::before {
+  content: '最受欢迎';
+  position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+  padding: 3px 14px; background: var(--grad); border-radius: 0 0 10px 10px;
+  font-size: 11px; font-weight: 600; color: #fff;
+}
+.price-name { font-size: 13px; color: var(--sub); font-weight: 500; margin-bottom: 8px; }
+.price-amount { display: flex; align-items: baseline; gap: 4px; margin-bottom: 6px; }
+.price-num { font-size: 38px; font-weight: 800; }
+.price-unit { font-size: 13px; color: var(--sub); }
+.price-period { font-size: 12px; color: var(--muted); margin-bottom: 22px; }
+.price-items { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px; }
+.price-items li { font-size: 13px; color: var(--sub); display: flex; align-items: center; gap: 8px; }
+.price-items li .check { color: var(--cyan); }
+.price-items li .cross { color: var(--muted); }
+.price-btn {
+  width: 100%; padding: 11px; border-radius: 10px; font-size: 14px; font-weight: 600;
+  cursor: pointer; border: none; transition: all 0.15s;
+}
+.price-btn.outline { background: none; border: 1px solid var(--border); color: var(--sub); }
+.price-btn.outline:hover { border-color: var(--blue); color: var(--text); }
+.price-btn.fill { background: var(--grad); color: #fff; }
+.price-btn.fill:hover { opacity: 0.88; }
+
+/* ── CTA BANNER ── */
+.cta-banner {
+  margin: 0 40px 80px; border-radius: 20px; padding: 56px 40px;
+  background: linear-gradient(135deg, rgba(37,99,235,0.25), rgba(6,182,212,0.15));
+  border: 1px solid rgba(37,99,235,0.25); text-align: center;
+}
+.cta-banner h2 { font-size: 28px; font-weight: 800; margin-bottom: 12px; }
+.cta-banner p { color: var(--sub); margin-bottom: 28px; font-size: 15px; }
+.cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.btn-big { padding: 13px 32px; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; border: none; }
+.btn-big.fill { background: var(--grad); color: #fff; }
+.btn-big.ghost { background: none; border: 1px solid var(--border); color: var(--sub); }
+
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--border); padding: 32px 40px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.footer-left { display: flex; align-items: center; gap: 8px; }
+.footer-logo { font-size: 16px; font-weight: 700; background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.footer-copy { font-size: 12px; color: var(--muted); }
+.footer-links { display: flex; gap: 20px; }
+.footer-links a { font-size: 12px; color: var(--muted); text-decoration: none; }
+.footer-links a:hover { color: var(--sub); }
+
+/* ── DIVIDER ── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 0 40px; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <span class="mark">◉</span>
+    <span class="name">OmniRadar</span>
+  </a>
+  <div class="nav-links">
+    <a href="#features">功能</a>
+    <a href="#advanced">高级功能</a>
+    <a href="#pricing">定价</a>
+  </div>
+  <div class="nav-cta">
+    <a href="#" class="btn-ghost">登录</a>
+    <a href="#" class="btn-primary">免费开始</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">🛰 支持抖音 · TikTok · 小红书 · YouTube · Instagram · 微博</div>
+  <h1>下载视频，<span>提取文字</span><br>拆解爆款内容</h1>
+  <p>粘贴任意平台视频链接，一键获取原片、AI文字稿和内容结构分析</p>
+
+  <div class="url-box">
+    <input id="url-input" type="text" placeholder="粘贴抖音 / TikTok / 小红书 / YouTube 视频链接…" />
+    <button class="parse-btn" onclick="startParse()">解析</button>
+  </div>
+
+  <div class="platforms">
+    <span class="plat-label">支持平台：</span>
+    <span class="plat-badge">🎵 抖音</span>
+    <span class="plat-badge">▶ TikTok</span>
+    <span class="plat-badge">📕 小红书</span>
+    <span class="plat-badge">▶ YouTube</span>
+    <span class="plat-badge">📷 Instagram</span>
+    <span class="plat-badge">🎥 微博</span>
+    <span class="plat-badge">快手</span>
+    <span class="plat-badge">B站</span>
+    <span class="plat-badge" style="color:var(--muted)">+14个</span>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result-area">
+    <!-- loading state -->
+    <div id="loading-state" class="result-card">
+      <div class="loading-wrap">
+        <div class="spinner"></div>
+        <div class="loading-text">正在解析视频链接…</div>
+      </div>
+    </div>
+
+    <!-- parsed result -->
+    <div id="parsed-state" class="result-card" style="display:none">
+      <div class="result-meta">
+        <div class="thumb-wrap">
+          <div style="width:100%;height:100%;background:linear-gradient(135deg,#1e3a5f,#0e1628);display:flex;align-items:center;justify-content:center;font-size:28px;">🎬</div>
+          <div class="thumb-overlay"><span class="play-icon">▶</span></div>
+        </div>
+        <div class="meta-info">
+          <div class="meta-title">【干货】小红书爆款笔记5个核心要素，95%的人都忽视了第3点</div>
+          <div class="meta-tags">
+            <span class="tag">📕 小红书</span>
+            <span class="tag">3:24</span>
+            <span class="tag green">1080P</span>
+            <span class="tag green">无水印</span>
+          </div>
+        </div>
+      </div>
+      <div class="result-actions">
+        <button class="action-btn" onclick="showTranscript()">
+          <span class="action-icon">⬇</span>
+          <span class="action-label">下载原片</span>
+        </button>
+        <button class="action-btn" onclick="showTranscript()">
+          <span class="action-icon">📝</span>
+          <span class="action-label">生成文字稿</span>
+        </button>
+        <button class="action-btn" onclick="showTranscript()">
+          <span class="action-icon">🔍</span>
+          <span class="action-label">内容分析</span>
+        </button>
+      </div>
+      <div id="transcript-area">
+        <div class="transcript-header">
+          AI 文字稿（Whisper 转录）
+          <button class="copy-btn" onclick="this.textContent='已复制 ✓'">复制全文</button>
+        </div>
+        <div class="transcript-text">
+          大家好，今天我来分享小红书爆款笔记的5个核心要素。第一个要素，是标题。很多人写标题都是直接描述内容，但真正能吸引人点进来的标题，一定要有悬念感或者强烈的利益承诺……<br><br>
+          第二个要素是封面设计。封面是用户在刷信息流时看到的第一眼，你有不到一秒钟的时间去吸引他的注意力……<br><br>
+          <span style="color:var(--muted);font-size:11px">···（完整文字稿共 2,140 字）</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="section-label">核心功能</div>
+  <h2 class="section-title">一个工具，覆盖内容团队<br>全部工作流</h2>
+  <p class="section-sub">从下载到分析，OmniRadar 把以前需要3个工具才能完成的事情整合在一起</p>
+
+  <div class="feat-grid">
+    <div class="feat-card">
+      <div class="feat-icon">⬇️</div>
+      <div class="feat-title">全平台视频下载</div>
+      <div class="feat-desc">支持 22 个主流平台，无水印下载，最高 4K 原画质</div>
+      <ul class="feat-list">
+        <li>无水印·原画质下载</li>
+        <li>自动识别平台，无需选择</li>
+        <li>同时下载封面图</li>
+        <li>支持合集批量下载</li>
+      </ul>
+    </div>
+
+    <div class="feat-card" style="border-color: rgba(37,99,235,0.3)">
+      <div class="feat-icon">📝</div>
+      <div class="feat-title">AI 文字稿生成</div>
+      <div class="feat-desc">Whisper 驱动，准确率 95%+，自动识别中英文混排</div>
+      <ul class="feat-list">
+        <li>逐句带时间戳</li>
+        <li>支持中·英·日·韩</li>
+        <li>一键导出 TXT / SRT</li>
+        <li>自动去除语气词</li>
+      </ul>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon">🔍</div>
+      <div class="feat-title">内容结构分析</div>
+      <div class="feat-desc">AI 自动拆解 Hook·卖点·节奏·CTA，提炼可复用的爆款公式</div>
+      <ul class="feat-list">
+        <li>Hook 效果评分</li>
+        <li>核心卖点提取</li>
+        <li>竞品内容对比</li>
+        <li>可执行优化建议</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ADVANCED -->
+<section class="adv-section" id="advanced" style="padding-top:80px">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="section-label">高级功能</div>
+    <h2 class="section-title">专为内容团队<br>设计的进阶工具</h2>
+    <p class="section-sub" style="margin-bottom:40px">适合品牌营销、达人运营、竞品研究等高频使用场景</p>
+
+    <div class="adv-grid">
+      <div class="adv-card">
+        <div class="adv-card-head">
+          <span class="adv-card-icon">🖼</span>
+          <span class="adv-card-title">封面拆解</span>
+          <span class="adv-card-badge">Pro</span>
+        </div>
+        <div class="adv-card-desc">
+          自动提取视频封面，AI 分析构图、配色、文字布局，给出封面效果预测评分，以及可直接复用的设计建议
+        </div>
+        <div class="adv-tag-row">
+          <span class="adv-tag">构图分析</span>
+          <span class="adv-tag">配色提取</span>
+          <span class="adv-tag">文字布局</span>
+          <span class="adv-tag">点击率预测</span>
+        </div>
+      </div>
+
+      <div class="adv-card">
+        <div class="adv-card-head">
+          <span class="adv-card-icon">📦</span>
+          <span class="adv-card-title">批量下载</span>
+          <span class="adv-card-badge">Pro</span>
+        </div>
+        <div class="adv-card-desc">
+          粘贴博主主页链接，一次性下载全部作品。支持按时间、播放量筛选，自动打包成 ZIP 下载
+        </div>
+        <div class="mock-preview">
+          <div class="mock-row">
+            <span class="mock-num">1</span>
+            <span class="mock-thumb">🎬</span>
+            <span class="mock-title">【测评】这款防晒我用了整个夏天…</span>
+            <span class="mock-check">✓</span>
+          </div>
+          <div class="mock-row">
+            <span class="mock-num">2</span>
+            <span class="mock-thumb">🎬</span>
+            <span class="mock-title">真实护肤顺序，皮肤科医生不会告诉你的</span>
+            <span class="mock-check">✓</span>
+          </div>
+          <div class="mock-row">
+            <span class="mock-num">3</span>
+            <span class="mock-thumb">🎬</span>
+            <span class="mock-title">5分钟搞懂A醇和视黄醇的区别</span>
+            <span class="mock-check" style="color:var(--muted)">…</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="adv-card">
+        <div class="adv-card-head">
+          <span class="adv-card-icon">📊</span>
+          <span class="adv-card-title">竞品内容雷达</span>
+          <span class="adv-card-badge">Pro</span>
+        </div>
+        <div class="adv-card-desc">
+          监控竞品账号最新发布，自动下载 + 转录 + 分析，每周生成一份竞品内容情报报告
+        </div>
+        <div class="adv-tag-row">
+          <span class="adv-tag">账号监控</span>
+          <span class="adv-tag">自动下载</span>
+          <span class="adv-tag">周报生成</span>
+          <span class="adv-tag">差异化洞察</span>
+        </div>
+      </div>
+
+      <div class="adv-card">
+        <div class="adv-card-head">
+          <span class="adv-card-icon">🔗</span>
+          <span class="adv-card-title">飞书插件联动</span>
+        </div>
+        <div class="adv-card-desc">
+          在飞书多维表格中直接调用 OmniRadar，分析结果自动写回表格字段，无需切换工具
+        </div>
+        <div class="adv-tag-row">
+          <span class="adv-tag">飞书 Base 侧边栏</span>
+          <span class="adv-tag">字段自动写回</span>
+          <span class="adv-tag">批量处理</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- PRICING -->
+<section class="section price-section" id="pricing">
+  <div style="text-align:center;max-width:1100px;margin:0 auto">
+    <div class="section-label" style="text-align:center">定价</div>
+    <h2 class="section-title" style="text-align:center">简单透明，按需付费</h2>
+    <p class="section-sub" style="margin:0 auto 32px;text-align:center">所有套餐均包含无水印下载，无隐藏费用</p>
+
+    <div class="price-toggle">
+      <span class="toggle-label">月付</span>
+      <div class="toggle-switch" id="billing-toggle" onclick="toggleBilling(this)">
+        <div class="toggle-dot"></div>
+      </div>
+      <span class="toggle-label">年付</span>
+      <span class="toggle-save">省 20%</span>
+    </div>
+
+    <div class="price-grid">
+      <div class="price-card">
+        <div class="price-name">免费版</div>
+        <div class="price-amount"><span class="price-num">¥0</span></div>
+        <div class="price-period">永久免费，无需信用卡</div>
+        <ul class="price-items">
+          <li><span class="check">✓</span> 每日 10 次视频解析</li>
+          <li><span class="check">✓</span> 无水印下载</li>
+          <li><span class="check">✓</span> AI 文字稿（每日 3 次）</li>
+          <li><span class="cross">—</span> 批量下载</li>
+          <li><span class="cross">—</span> 封面拆解</li>
+          <li><span class="cross">—</span> 竞品雷达</li>
+        </ul>
+        <button class="price-btn outline">免费开始</button>
+      </div>
+
+      <div class="price-card featured">
+        <div class="price-name">Pro</div>
+        <div class="price-amount">
+          <span class="price-num" id="pro-price">¥99</span>
+          <span class="price-unit">/月</span>
+        </div>
+        <div class="price-period" id="pro-period">按月付费</div>
+        <ul class="price-items">
+          <li><span class="check">✓</span> 无限次视频解析</li>
+          <li><span class="check">✓</span> 无水印下载</li>
+          <li><span class="check">✓</span> 无限 AI 文字稿</li>
+          <li><span class="check">✓</span> 批量下载（每次 50 个）</li>
+          <li><span class="check">✓</span> 封面拆解分析</li>
+          <li><span class="cross">—</span> 竞品雷达监控</li>
+        </ul>
+        <button class="price-btn fill">立即升级 Pro</button>
+      </div>
+
+      <div class="price-card">
+        <div class="price-name">团队版</div>
+        <div class="price-amount">
+          <span class="price-num" id="team-price">¥299</span>
+          <span class="price-unit">/月</span>
+        </div>
+        <div class="price-period" id="team-period">按月付费，支持 5 个账号</div>
+        <ul class="price-items">
+          <li><span class="check">✓</span> Pro 全部功能</li>
+          <li><span class="check">✓</span> 批量下载（每次 500 个）</li>
+          <li><span class="check">✓</span> 竞品雷达（监控 10 个账号）</li>
+          <li><span class="check">✓</span> 飞书插件联动</li>
+          <li><span class="check">✓</span> 周报自动生成</li>
+          <li><span class="check">✓</span> 优先客服支持</li>
+        </ul>
+        <button class="price-btn outline">联系我们</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<div class="cta-banner">
+  <h2>立刻开始，免费使用</h2>
+  <p>无需信用卡 · 注册即用 · 每日 10 次免费下载</p>
+  <div class="cta-row">
+    <button class="btn-big fill">免费注册</button>
+    <button class="btn-big ghost">查看演示</button>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-left">
+    <span class="footer-logo">◉ OmniRadar</span>
+    <span class="footer-copy">© 2026 OmniRadar. All rights reserved.</span>
+  </div>
+  <div class="footer-links">
+    <a href="#">隐私政策</a>
+    <a href="#">服务条款</a>
+    <a href="#">联系我们</a>
+  </div>
+</footer>
+
+<script>
+// URL parse mock
+function startParse() {
+  const input = document.getElementById('url-input').value.trim()
+  if (!input) {
+    document.getElementById('url-input').placeholder = '请先粘贴视频链接…'
+    return
+  }
+  const area = document.getElementById('result-area')
+  const loading = document.getElementById('loading-state')
+  const parsed = document.getElementById('parsed-state')
+  area.style.display = 'block'
+  loading.style.display = 'block'
+  parsed.style.display = 'none'
+  area.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  setTimeout(() => {
+    loading.style.display = 'none'
+    parsed.style.display = 'block'
+  }, 1600)
+}
+
+// transcript mock
+function showTranscript() {
+  const t = document.getElementById('transcript-area')
+  t.style.display = t.style.display === 'block' ? 'none' : 'block'
+}
+
+// Enter key
+document.getElementById('url-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startParse()
+})
+
+// Billing toggle
+function toggleBilling(el) {
+  el.classList.toggle('on')
+  const yearly = el.classList.contains('on')
+  document.getElementById('pro-price').textContent = yearly ? '¥79' : '¥99'
+  document.getElementById('pro-period').textContent = yearly ? '按年付费 (¥948/年)' : '按月付费'
+  document.getElementById('team-price').textContent = yearly ? '¥239' : '¥299'
+  document.getElementById('team-period').textContent = yearly ? '按年付费，支持 5 个账号' : '按月付费，支持 5 个账号'
+}
+</script>
+</body>
+</html>
